@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'sequel-paranoid'
-  s.version     = '0.0.1'
+  s.version     = '0.1.0'
   s.date        = '2013-07-29'
   s.summary     = "A plugin for the Ruby ORM Sequel, that allows soft deletion of database entries."
   s.description = "Use this plugin to mark a model instance as deleted without loosing its actual data."
