@@ -84,4 +84,16 @@ describe Sequel::Plugins::Paranoid do
       expect(@instance1.after_destroy_value).to be_true
     end
   end
+
+  describe :recover do
+    before do
+      @instance1.destroy
+    end
+
+    it "undeletes an instance" do
+      expect(SpecModel.all).to have(1).items
+      @instance1.recover
+      expect(SpecModel.all).to have(2).items
+    end
+  end
 end

@@ -41,6 +41,9 @@ module Sequel::Plugins
           end
         end
 
+        define_method("recover") do
+          self.class.unfiltered.where(:id => self.id).update(:deleted_at => nil)
+        end
 
         #
         # Inject the default scope that filters deleted entries.
