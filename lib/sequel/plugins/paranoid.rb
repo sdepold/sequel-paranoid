@@ -41,8 +41,20 @@ module Sequel::Plugins
           end
         end
 
+        #
+        # Method for undeleting an instance.
+        #
+
         define_method("recover") do
           self.class.unfiltered.where(:id => self.id).update(:deleted_at => nil)
+        end
+
+        #
+        # Check if an instance is deleted.
+        #
+
+        define_method("deleted?") do
+          !!self.deleted_at
         end
 
         #

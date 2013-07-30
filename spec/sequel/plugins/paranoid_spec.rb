@@ -91,9 +91,37 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "undeletes an instance" do
-      expect(SpecModel.all).to have(1).items
+      expect(SpecModel.all).to have(1).item
       @instance1.recover
       expect(SpecModel.all).to have(2).items
+    end
+  end
+
+  describe :unfiltered do
+    before do
+      @instance1.destroy
+    end
+
+    it "returns all instances" do
+      expect(SpecModel.unfiltered.all).to have(2).items
+    end
+
+    it "works with scopes" do
+      expect(SpecModel.dataset.unfiltered.all).to have(2).items
+    end
+  end
+
+  describe :deleted? do
+    before do
+      @instance1.destroy
+    end
+
+    it "returns false if deleted_at is not null" do
+      expect(@instance1.deleted?).to be_true
+    end
+
+    it "returns false if deleted_at is null" do
+      expect(@instance2.deleted?).to be_false
     end
   end
 end
