@@ -3,28 +3,36 @@ require 'sequel'
 module Sequel::Plugins
   module Paranoid
     def self.configure(model, options = {})
-      model.instance_eval do
+      options = {
+        :deleted_at_field_name      => :deleted_at,
+        :deleted_by_field_name      => :deleted_by,
+        :enable_deleted_by          => false,
+        :deleted_scope_name         => :deleted,
+        :non_deleted_scope_name     => :present,
+        :ignore_deletion_scope_name => :with_deleted,
+        :set_default_scope          => false
+      }.merge(options)
 
+      model.instance_eval do
         #
         # Inject the scopes for the deleted and the existing entries.
         #
 
         dataset_module do
-          def deleted
-            unfiltered.exclude(:deleted_at => nil)
+          # scope for deleted items
+          define_method(options[:deleted_scope_name]) do
+            send(options[:ignore_deletion_scope_name]).exclude(options[:deleted_at_field_name] => nil)
           end
 
-          def existing
-            unfiltered.filter(:deleted_at => nil)
+          # scope for non-deleted items
+          define_method(options[:non_deleted_scope_name]) do
+            filter(options[:deleted_at_field_name] => nil)
           end
-        end
 
-        #
-        # Shortcut method to return the unfiltered dataset.
-        #
-
-        def unfiltered
-          dataset.unfiltered
+          # scope for both
+          define_method(options[:ignore_deletion_scope_name]) do
+            unfiltered
+          end
         end
 
         #
@@ -32,10 +40,15 @@ module Sequel::Plugins
         #
 
         define_method("destroy") do
-          self.before_destroy if self.respond_to?(:before_destroy)
+          # call the before_destroy hook if present
+          if self.respond_to?(:before_destroy)
+            self.before_destroy
+          end
 
+          # set the deletion time
           self.deleted_at = Time.now
 
+          # save the instance and call the after_destroy hook if present
           if save and self.respond_to?(:after_destroy)
             self.after_destroy
           end
@@ -46,7 +59,7 @@ module Sequel::Plugins
         #
 
         define_method("recover") do
-          self.class.unfiltered.where(:id => self.id).update(:deleted_at => nil)
+          self.class.send(options[:ignore_deletion_scope_name]).where(:id => self.id).update(options[:deleted_at_field_name] => nil)
         end
 
         #
@@ -54,14 +67,16 @@ module Sequel::Plugins
         #
 
         define_method("deleted?") do
-          !!self.deleted_at
+          !!send(options[:deleted_at_field_name])
         end
 
         #
         # Inject the default scope that filters deleted entries.
         #
 
-        set_dataset(self.existing)
+        if options[:set_default_scope]
+          set_dataset(self.send(options[:non_deleted_scope_name]))
+        end
       end
     end
   end
