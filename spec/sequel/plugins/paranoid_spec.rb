@@ -1,22 +1,9 @@
 require 'spec_helper'
 
-class SpecModel < Sequel::Model
-  plugin :paranoid
-
-  attr_accessor :before_destroy_value, :after_destroy_value
-
-  def before_destroy
-    @before_destroy_value = true
-  end
-
-  def after_destroy
-    @after_destroy_value = true
-  end
-end
-
 describe Sequel::Plugins::Paranoid do
   before do
-    SpecModel.unfiltered.delete
+    SpecModel.dataset.delete
+    SpecFragment.dataset.delete
 
     @instance1 = SpecModel.create :name => 'foo'
     @instance2 = SpecModel.create :name => 'bar'
@@ -25,13 +12,13 @@ describe Sequel::Plugins::Paranoid do
   context "without deletions" do
     describe "Model.all" do
       it "returns all entries" do
-        expect(SpecModel.all).to have(2).items
+        expect(SpecModel.present.all).to have(2).items
       end
     end
 
-    describe :unfiltered do
+    describe :with_deleted do
       it "returns all entries" do
-        expect(SpecModel.unfiltered.all).to have(2).items
+        expect(SpecModel.all).to have(2).items
       end
     end
   end
@@ -42,15 +29,15 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "doesn't return deleted entries" do
-      expect(SpecModel.all).to have(1).items
+      expect(SpecModel.present.all).to have(1).items
     end
 
     it "returns deleted entries if the default scope has been extended" do
-      expect(SpecModel.unfiltered.all).to have(2).items
+      expect(SpecModel.all).to have(2).items
     end
 
     it "marks the deleted entries with a specific timestamp" do
-      instance = SpecModel.unfiltered.where(:id => @instance1.id).first
+      instance = SpecModel.where(:id => @instance1.id).first
       expect(instance.deleted_at).to_not be_nil
     end
 
@@ -63,9 +50,9 @@ describe Sequel::Plugins::Paranoid do
       end
     end
 
-    describe :existing do
+    describe :present do
       it "returns the not deleted entries only" do
-        instances = SpecModel.existing.all
+        instances = SpecModel.present.all
 
         expect(instances).to have(1).item
         expect(instances.first.deleted_at).to be_nil
@@ -91,23 +78,40 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "undeletes an instance" do
-      expect(SpecModel.all).to have(1).item
+      expect(SpecModel.present.all).to have(1).item
       @instance1.recover
-      expect(SpecModel.all).to have(2).items
+      expect(SpecModel.present.all).to have(2).items
     end
   end
 
-  describe :unfiltered do
-    before do
-      @instance1.destroy
-    end
-
+  describe :with_deleted do
     it "returns all instances" do
-      expect(SpecModel.unfiltered.all).to have(2).items
+      @instance1.destroy
+      expect(SpecModel.all).to have(2).items
     end
 
     it "works with scopes" do
-      expect(SpecModel.dataset.unfiltered.all).to have(2).items
+      @instance1.destroy
+      expect(SpecModel.dataset.with_deleted.all).to have(2).items
+    end
+
+    context "associations" do
+      before do
+        @fragment1 = SpecFragment.create(:name => 'fragment1')
+        @fragment2 = SpecFragment.create(:name => 'fragment2')
+        @fragment3 = SpecFragment.create(:name => 'fragment3')
+
+        @instance1.add_spec_fragment @fragment1
+        @instance1.add_spec_fragment @fragment2
+        @instance2.add_spec_fragment @fragment3
+
+        @fragment2.destroy
+      end
+
+      it "returns only fragments of instance1" do
+        dataset = @instance1.spec_fragments_dataset
+        expect(dataset.all).to have(2).items
+      end
     end
   end
 
@@ -122,6 +126,18 @@ describe Sequel::Plugins::Paranoid do
 
     it "returns false if deleted_at is null" do
       expect(@instance2.deleted?).to be_false
+    end
+  end
+
+  describe :default_scope do
+    before do
+      @instance1 = SpecModelWithDefaultScope.create(:name => 'foo')
+      @instance2 = SpecModelWithDefaultScope.create(:name => 'bar')
+    end
+
+    it "does not return the deleted instances" do
+      @instance1.destroy
+      expect(SpecModelWithDefaultScope.all).to have(1).item
     end
   end
 end
