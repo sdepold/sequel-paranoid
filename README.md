@@ -64,6 +64,7 @@ class ParanoidModel < Sequel::Model
 end
 
 instance = ParanoidModel.create(:something => 'foo')
+
 instance.destroy
 instance.destroyed_at # => current timestamp
 ```
