@@ -49,9 +49,23 @@ By default the plugin will not change the way scopes have been working. So if yo
 you can use the following dataset filters:
 
 ```rb
-ParanoidModel.present.all # => Will return all the non-deleted entries from the db.
-Paranoid.deleted.all      # => Will return all the deleted entries from the db.
-Paranoid.with_deleted.all # => Will ignore the deletion state (and is the default).
+ParanoidModel.present.all      # => Will return all the non-deleted entries from the db.
+ParanoidModel.deleted.all      # => Will return all the deleted entries from the db.
+ParanoidModel.with_deleted.all # => Will ignore the deletion state (and is the default).
+```
+
+### Renaming the deletion timestamp columns
+
+If you don't want to use the default column name `deleted_at`, you can easily rename that column:
+
+```rb
+class ParanoidModel < Sequel::Model
+  plugin :paranoid, :deleted_at_field_name => :destroyed_at
+end
+
+instance = ParanoidModel.create(:something => 'foo')
+instance.destroy
+instance.destroyed_at # => current timestamp
 ```
 
 ### Enabling the non-deleted default scope
