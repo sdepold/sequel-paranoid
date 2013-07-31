@@ -131,6 +131,8 @@ describe Sequel::Plugins::Paranoid do
 
   describe :default_scope do
     before do
+      SpecModelWithDefaultScope.dataset.delete
+
       @instance1 = SpecModelWithDefaultScope.create(:name => 'foo')
       @instance2 = SpecModelWithDefaultScope.create(:name => 'bar')
     end
@@ -138,6 +140,24 @@ describe Sequel::Plugins::Paranoid do
     it "does not return the deleted instances" do
       @instance1.destroy
       expect(SpecModelWithDefaultScope.all).to have(1).item
+    end
+  end
+
+  describe :deleted_by do
+    before do
+      SpecModelWithDeletedBy.dataset.delete
+
+      @instance = SpecModelWithDeletedBy.create(:name => 'foo')
+    end
+
+    it "does not save the deleted_by attributes if not passed to destroy" do
+      @instance.destroy
+      expect(@instance.reload.deleted_by).to be_nil
+    end
+
+    it "saves the deleted_by_attribute if passed to destroy" do
+      @instance.destroy(:deleted_by => 'John Doe')
+      expect(@instance.reload.deleted_by).to eq("John Doe")
     end
   end
 end

@@ -39,14 +39,21 @@ module Sequel::Plugins
         # Overwrite the "destroy" method.
         #
 
-        define_method("destroy") do
+        define_method("destroy") do |*args|
+          destroy_options = args.first
+
           # call the before_destroy hook if present
           if self.respond_to?(:before_destroy)
             self.before_destroy
           end
 
           # set the deletion time
-          self.deleted_at = Time.now
+          self.send("#{options[:deleted_at_field_name]}=", Time.now)
+
+          # set the deletion author
+          if options[:enable_deleted_by] && destroy_options && destroy_options[:deleted_by]
+            self.send("#{options[:deleted_by_field_name]}=", destroy_options[:deleted_by])
+          end
 
           # save the instance and call the after_destroy hook if present
           if save and self.respond_to?(:after_destroy)

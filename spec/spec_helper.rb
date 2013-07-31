@@ -9,19 +9,26 @@ RSpec.configure do |config|
   DB.create_table(:spec_models) do
     primary_key :id, :auto_increment => true
     DateTime :deleted_at
-    String :name
+    String   :name
   end
 
   DB.create_table(:spec_model_with_default_scopes) do
     primary_key :id, :auto_increment => true
     DateTime :deleted_at
-    String :name
+    String   :name
   end
 
   DB.create_table(:spec_fragments) do
     primary_key :id, :auto_increment => true
-    Integer :spec_model_id
+    Integer  :spec_model_id
     DateTime :deleted_at
+    String   :name
+  end
+
+  DB.create_table(:spec_model_with_deleted_bies) do
+    primary_key :id, :auto_increment => true
+    DateTime :deleted_at
+    String   :deleted_by
     String :name
   end
 end
@@ -48,4 +55,8 @@ end
 
 class SpecModelWithDefaultScope < Sequel::Model
   plugin :paranoid, :set_default_scope => true
+end
+
+class SpecModelWithDeletedBy < Sequel::Model
+  plugin :paranoid, :enable_deleted_by => true
 end
