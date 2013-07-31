@@ -54,7 +54,7 @@ class SpecFragment < Sequel::Model
 end
 
 class SpecModelWithDefaultScope < Sequel::Model
-  plugin :paranoid, :set_default_scope => true
+  plugin :paranoid, :enable_default_scope => true
 end
 
 class SpecModelWithDeletedBy < Sequel::Model

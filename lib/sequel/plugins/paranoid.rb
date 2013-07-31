@@ -10,7 +10,7 @@ module Sequel::Plugins
         :deleted_scope_name         => :deleted,
         :non_deleted_scope_name     => :present,
         :ignore_deletion_scope_name => :with_deleted,
-        :set_default_scope          => false
+        :enable_default_scope          => false
       }.merge(options)
 
       model.instance_eval do
@@ -81,7 +81,7 @@ module Sequel::Plugins
         # Inject the default scope that filters deleted entries.
         #
 
-        if options[:set_default_scope]
+        if options[:enable_default_scope]
           set_dataset(self.send(options[:non_deleted_scope_name]))
         end
       end
