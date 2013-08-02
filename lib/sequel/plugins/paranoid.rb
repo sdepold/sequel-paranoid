@@ -10,7 +10,7 @@ module Sequel::Plugins
         :deleted_scope_name         => :deleted,
         :non_deleted_scope_name     => :present,
         :ignore_deletion_scope_name => :with_deleted,
-        :enable_default_scope          => false
+        :enable_default_scope       => false
       }.merge(options)
 
       model.instance_eval do
@@ -66,7 +66,13 @@ module Sequel::Plugins
         #
 
         define_method("recover") do
-          self.class.send(options[:ignore_deletion_scope_name]).where(:id => self.id).update(options[:deleted_at_field_name] => nil)
+          self.send("#{options[:deleted_at_field_name]}=".to_sym, nil)
+
+          if options[:enable_deleted_by] && self.respond_to?(options[:deleted_by_field_name].to_sym)
+            self.send("#{options[:deleted_by_field_name]}=", nil)
+          end
+
+          self.save
         end
 
         #

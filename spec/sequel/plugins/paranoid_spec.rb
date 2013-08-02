@@ -159,5 +159,12 @@ describe Sequel::Plugins::Paranoid do
       @instance.destroy(:deleted_by => 'John Doe')
       expect(@instance.reload.deleted_by).to eq("John Doe")
     end
+
+    it "gets deleted when the instance is recovered" do
+      @instance.destroy(:deleted_by => 'John Doe')
+      expect(@instance.reload.deleted_by).to eq("John Doe")
+      @instance.recover
+      expect(@instance.reload.deleted_by).to be_nil
+    end
   end
 end
