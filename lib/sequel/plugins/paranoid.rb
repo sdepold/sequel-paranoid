@@ -21,12 +21,12 @@ module Sequel::Plugins
         dataset_module do
           # scope for deleted items
           define_method(options[:deleted_scope_name]) do
-            send(options[:ignore_deletion_scope_name]).exclude(options[:deleted_at_field_name] => nil)
+            send(options[:ignore_deletion_scope_name]).exclude(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => nil)
           end
 
           # scope for non-deleted items
           define_method(options[:non_deleted_scope_name]) do
-            filter(options[:deleted_at_field_name] => nil)
+            filter(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => nil)
           end
 
           # scope for both
