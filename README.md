@@ -4,6 +4,9 @@ A plugin for the Ruby ORM Sequel, that allows soft deletion of database entries.
 
 ## Changelog
 
+### 0.4.3
+- Fully qualify the columns
+
 ### 0.4.2
 - Fixed rollbacks in transactions
 
