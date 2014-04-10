@@ -70,6 +70,27 @@ describe Sequel::Plugins::Paranoid do
       @instance1.destroy
       expect(@instance1.after_destroy_value).to be_true
     end
+
+    it "is transactionally safe" do
+      @instance = SpecModel.create :name => 'foo'
+
+      def @instance.before_destroy
+        self.name = 'bar'
+        self.save
+      end
+
+      def @instance.after_destroy
+        raise "Failure"
+      end
+
+      # Make sure it wraps stuff in a transaction correctly and rollbacks
+      # changes.
+      expect { @instance.destroy }.to raise_error("Failure")
+
+      @instance.reload
+
+      expect(@instance.name).to eq('foo')
+    end
   end
 
   describe :recover do

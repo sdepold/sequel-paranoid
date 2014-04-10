@@ -36,16 +36,22 @@ module Sequel::Plugins
         end
 
         #
-        # Overwrite the "destroy" method.
+        # Overwrite the "_destroy_delete" method which is used by sequel to
+        # delete an object. This makes sure, we run all the hook correctly and
+        # in a transaction.
         #
-
         define_method("destroy") do |*args|
-          destroy_options = args.first
+          # Save the variables threadsafe (because the locks have not been
+          # initialized by sequel yet).
+          Thread.current[:_paranoid_destroy_args] = args
 
-          # call the before_destroy hook if present
-          if self.respond_to?(:before_destroy)
-            self.before_destroy
-          end
+          super(*args)
+        end
+
+        define_method("_destroy_delete") do
+          # _destroy_delete does not take arguments.
+          destroy_options = Thread.current[:_paranoid_destroy_args].first
+          Thread.current[:_paranoid_destory_args] = nil
 
           # set the deletion time
           self.send("#{options[:deleted_at_field_name]}=", Time.now)
@@ -55,10 +61,7 @@ module Sequel::Plugins
             self.send("#{options[:deleted_by_field_name]}=", destroy_options[:deleted_by])
           end
 
-          # save the instance and call the after_destroy hook if present
-          if save and self.respond_to?(:after_destroy)
-            self.after_destroy
-          end
+          self.save
         end
 
         #
