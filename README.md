@@ -4,6 +4,9 @@ A plugin for the Ruby ORM Sequel, that allows soft deletion of database entries.
 
 ## Changelog
 
+### 0.4.2
+- Fixed rollbacks in transactions
+
 ### 0.4.1
 - Set the `deleted_by` field to nil on `.recover`.
 
