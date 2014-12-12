@@ -51,7 +51,7 @@ module Sequel::Plugins
         define_method("_destroy_delete") do
           # _destroy_delete does not take arguments.
           destroy_options = Thread.current[:_paranoid_destroy_args].first
-          Thread.current[:_paranoid_destory_args] = nil
+          Thread.current[:_paranoid_destroy_args] = nil
 
           # set the deletion time
           self.send("#{options[:deleted_at_field_name]}=", Time.now)
