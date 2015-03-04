@@ -10,7 +10,8 @@ module Sequel::Plugins
         :deleted_scope_name         => :deleted,
         :non_deleted_scope_name     => :present,
         :ignore_deletion_scope_name => :with_deleted,
-        :enable_default_scope       => false
+        :enable_default_scope       => false,
+        :deleted_column_default     => nil
       }.merge(options)
 
       model.instance_eval do
@@ -21,12 +22,12 @@ module Sequel::Plugins
         dataset_module do
           # scope for deleted items
           define_method(options[:deleted_scope_name]) do
-            send(options[:ignore_deletion_scope_name]).exclude(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => nil)
+            send(options[:ignore_deletion_scope_name]).exclude(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => options[:deleted_column_default])
           end
 
           # scope for non-deleted items
           define_method(options[:non_deleted_scope_name]) do
-            filter(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => nil)
+            filter(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => options[:deleted_column_default])
           end
 
           # scope for both
@@ -69,7 +70,7 @@ module Sequel::Plugins
         #
 
         define_method("recover") do
-          self.send("#{options[:deleted_at_field_name]}=".to_sym, nil)
+          self.send("#{options[:deleted_at_field_name]}=".to_sym, options[:deleted_column_default])
 
           if options[:enable_deleted_by] && self.respond_to?(options[:deleted_by_field_name].to_sym)
             self.send("#{options[:deleted_by_field_name]}=", nil)
@@ -83,7 +84,7 @@ module Sequel::Plugins
         #
 
         define_method("deleted?") do
-          !!send(options[:deleted_at_field_name])
+          send(options[:deleted_at_field_name]) != options[:deleted_column_default]
         end
 
         #
