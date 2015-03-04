@@ -124,3 +124,18 @@ parent1.child_models_dataset.unfiltered.all # => [child1, child2, child3] (broke
 
 Note that the last command is broken, as `child3` is not associated with parent1. The reason for that is `unfiltered`,
 which will not only remove the `deleted_at` check but also the assocation condition of the query.
+
+### Using unique constraints with soft-deletion
+
+You can use the `:deleted_column_default` option in order to specify a value
+that is not `NULL`, which will allow you to include the column in a unique
+constraint.
+
+Using this option requires you to also set this default column value in your
+database.
+
+```rb
+class ParanoidModel < Sequel::Model
+  plugin :paranoid, :deleted_column_default: Time.at(0)
+end
+```
