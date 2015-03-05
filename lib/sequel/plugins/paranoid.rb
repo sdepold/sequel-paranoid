@@ -93,6 +93,19 @@ module Sequel::Plugins
 
         if options[:enable_default_scope]
           set_dataset(self.send(options[:non_deleted_scope_name]))
+
+          define_method("this") do
+            return @this if @this
+            raise Error, "No dataset for model #{model}" unless ds = model.send(options[:ignore_deletion_scope_name])
+
+            cond = if ds.send(:joined_dataset?)
+              qualified_pk_hash
+            else
+              pk_hash
+            end
+
+            @this = use_server(ds.where(cond).naked)
+          end
         end
       end
     end
