@@ -4,11 +4,15 @@ A plugin for the Ruby ORM Sequel, that allows soft deletion of database entries.
 
 ## Changelog
 
+### 0.5.0
+
+- Permit changing the default value of the *deleted column* via the `deleted_column_default` option.
+
 ### 0.4.3
-- Fully qualify the columns
+- Fully qualify the columns.
 
 ### 0.4.2
-- Fixed rollbacks in transactions
+- Fixed rollbacks in transactions.
 
 ### 0.4.1
 - Set the `deleted_by` field to nil on `.recover`.
