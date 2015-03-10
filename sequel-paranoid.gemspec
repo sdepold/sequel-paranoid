@@ -1,13 +1,13 @@
 Gem::Specification.new do |s|
   s.name        = 'sequel-paranoid'
-  s.version     = '0.5.0'
-  s.date        = '2014-04-10'
+  s.version     = '0.6.0'
+  s.date        = '2015-03-10'
   s.summary     = "A plugin for the Ruby ORM Sequel, that allows soft deletion of database entries."
   s.description = "Use this plugin to mark a model instance as deleted without loosing its actual data."
   s.authors     = ["Sascha Depold"]
-  s.email       = 'sascha.depold@blacklane.com'
+  s.email       = 'sascha@depold.com'
   s.files       = ["lib/sequel/plugins/paranoid.rb"]
-  s.homepage    = 'https://github.com/blacklane/sequel-paranoid'
+  s.homepage    = 'https://github.com/sdepold/sequel-paranoid'
   s.license     = "MIT"
 
   s.add_runtime_dependency "sequel"
