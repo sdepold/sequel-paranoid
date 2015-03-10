@@ -1,7 +1,7 @@
 ## Changelog
 
 ### 0.6.0
-- Add possibility to bypass uniqueness constraints via `deleted_column_default`
+- Reflect ownership change in gemspec.
 
 ### 0.5.0
 - Permit changing the default value of the *deleted column* via the `deleted_column_default` option.
