@@ -93,6 +93,22 @@ describe Sequel::Plugins::Paranoid do
     end
   end
 
+  describe "cascade delete" do
+    before do
+      @cascading_parent = SpecModelWithCascadeDelete.create :name => 'baz'
+      @cascading_child = SpecFragment.create :name => 'baz-child'
+
+      @cascading_child.spec_model = @cascading_parent
+      @cascading_child.save
+    end
+
+    it "successfully cascade deletes" do
+      @cascading_parent.destroy
+      expect(@cascading_parent.before_destroy_value).to be_true
+      expect(SpecFragment.present.all).to have(0).items
+    end
+  end
+
   describe :recover do
     before do
       @instance1.destroy

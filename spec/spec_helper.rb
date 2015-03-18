@@ -60,3 +60,14 @@ end
 class SpecModelWithDeletedBy < Sequel::Model
   plugin :paranoid, :enable_deleted_by => true
 end
+
+class SpecModelWithCascadeDelete < SpecModel
+  plugin :paranoid
+  one_to_many :spec_fragment
+
+  def before_destroy
+    spec_fragments.each { |m| m.destroy }
+
+    super
+  end
+end
