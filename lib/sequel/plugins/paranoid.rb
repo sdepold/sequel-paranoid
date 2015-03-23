@@ -44,15 +44,15 @@ module Sequel::Plugins
         define_method("destroy") do |*args|
           # Save the variables threadsafe (because the locks have not been
           # initialized by sequel yet).
-          Thread.current[:_paranoid_destroy_args] = args
+          Thread.current["_paranoid_destroy_args_#{self.object_id}"] = args
 
           super(*args)
         end
 
         define_method("_destroy_delete") do
           # _destroy_delete does not take arguments.
-          destroy_options = Thread.current[:_paranoid_destroy_args].first
-          Thread.current[:_paranoid_destroy_args] = nil
+          destroy_options = Thread.current["_paranoid_destroy_args_#{self.object_id}"].first
+          Thread.current["_paranoid_destroy_args_#{self.object_id}"] = nil
 
           # set the deletion time
           self.send("#{options[:deleted_at_field_name]}=", Time.now)
