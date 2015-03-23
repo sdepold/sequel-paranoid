@@ -1,5 +1,8 @@
 ## Changelog
 
+### 0.6.1
+- Fix cascade deletes
+
 ### 0.6.0
 - Reflect ownership change in gemspec.
 
