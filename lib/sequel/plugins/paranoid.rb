@@ -95,6 +95,8 @@ module Sequel::Plugins
           set_dataset(self.send(options[:non_deleted_scope_name]))
 
           define_method("this") do
+            return super() unless deleted?
+
             return @this if @this
             raise Error, "No dataset for model #{model}" unless ds = model.send(options[:ignore_deletion_scope_name])
 

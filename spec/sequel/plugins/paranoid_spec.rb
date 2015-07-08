@@ -162,6 +162,13 @@ describe Sequel::Plugins::Paranoid do
       @instance1.destroy
       expect(SpecModelWithDefaultScope.all).to have(1).item
     end
+
+    it "successfully recovers a deleted instance" do
+      @instance1.destroy
+      expect(SpecModelWithDefaultScope.all).to have(1).item
+      @instance1.reload.recover
+      expect(SpecModelWithDefaultScope.all).to have(2).items
+    end
   end
 
   describe :deleted_by do
