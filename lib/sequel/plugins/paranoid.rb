@@ -66,6 +66,23 @@ module Sequel::Plugins
         end
 
         #
+        # Sequel patch to allow updates to deleted instances
+        # when default scope is enabled
+        #
+
+        define_method("_update_without_checking") do |columns|
+          # figure out correct pk conditions (see base#this)
+          conditions = this.send(:joined_dataset?) ? qualified_pk_hash : pk_hash
+
+          # turn off with deleted, added the pk conditions back in
+          update_with_deleted_dataset = this.with_deleted.where(conditions)
+
+          # run the original update on the with_deleted dataset
+          update_with_deleted_dataset.update(columns)
+
+        end if(options[:enable_default_scope])
+
+        #
         # Method for undeleting an instance.
         #
 

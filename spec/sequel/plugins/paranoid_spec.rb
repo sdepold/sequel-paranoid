@@ -168,7 +168,7 @@ describe Sequel::Plugins::Paranoid do
 
   describe :default_scope do
     before do
-      SpecModelWithDefaultScope.dataset.delete
+      SpecModelWithDefaultScope.with_deleted.delete
 
       @instance1 = SpecModelWithDefaultScope.create(:name => 'foo')
       @instance2 = SpecModelWithDefaultScope.create(:name => 'bar')
@@ -177,6 +177,28 @@ describe Sequel::Plugins::Paranoid do
     it "does not return the deleted instances" do
       @instance1.destroy
       expect(SpecModelWithDefaultScope.all).to have(1).item
+    end
+
+    it "can still undelete an instance" do
+      @instance1.destroy
+      expect(SpecModelWithDefaultScope.present.all).to have(1).item
+      @instance1.recover
+      expect(SpecModelWithDefaultScope.present.all).to have(2).items
+    end
+
+    it "can update a deleted instance" do
+      @instance1.destroy
+      @instance1.update(name: 'baz')
+
+      expect(SpecModelWithDefaultScope.with_deleted.where(name: 'baz').count).to eql(1)
+    end
+
+    it "can save a deleted instance" do
+      @instance1.destroy
+      @instance1.name = 'baz'
+      @instance1.save
+
+      expect(SpecModelWithDefaultScope.with_deleted.where(name: 'baz').count).to eql(1)
     end
   end
 
