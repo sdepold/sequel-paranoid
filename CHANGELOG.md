@@ -1,5 +1,8 @@
 ## Changelog
 
+### 0.6.2
+- Fix handling of default scopes
+
 ### 0.6.1
 - Fix cascade deletes
 
