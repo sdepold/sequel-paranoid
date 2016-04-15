@@ -12,13 +12,13 @@ describe Sequel::Plugins::Paranoid do
   context "without deletions" do
     describe "Model.all" do
       it "returns all entries" do
-        expect(SpecModel.present.all).to have(2).items
+        expect(SpecModel.present.all.count).to eq(2)
       end
     end
 
     describe :with_deleted do
       it "returns all entries" do
-        expect(SpecModel.all).to have(2).items
+        expect(SpecModel.all.count).to eq(2)
       end
     end
   end
@@ -29,11 +29,11 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "doesn't return deleted entries" do
-      expect(SpecModel.present.all).to have(1).items
+      expect(SpecModel.present.all.count).to eq(1)
     end
 
     it "returns deleted entries if the default scope has been extended" do
-      expect(SpecModel.all).to have(2).items
+      expect(SpecModel.all.count).to eq(2)
     end
 
     it "marks the deleted entries with a specific timestamp" do
@@ -45,7 +45,7 @@ describe Sequel::Plugins::Paranoid do
       it "returns the deleted entries only" do
         instances = SpecModel.deleted.all
 
-        expect(instances).to have(1).item
+        expect(instances.count).to eq(1)
         expect(instances.first.deleted_at).to_not be_nil
       end
     end
@@ -54,7 +54,7 @@ describe Sequel::Plugins::Paranoid do
       it "returns the not deleted entries only" do
         instances = SpecModel.present.all
 
-        expect(instances).to have(1).item
+        expect(instances.count).to eq(1)
         expect(instances.first.deleted_at).to be_nil
       end
     end
@@ -63,12 +63,12 @@ describe Sequel::Plugins::Paranoid do
   describe "callbacks" do
     it "executes the before_destroy callback" do
       @instance1.destroy
-      expect(@instance1.before_destroy_value).to be_true
+      expect(@instance1.before_destroy_value).to be true
     end
 
     it "executes the after_destroy callback" do
       @instance1.destroy
-      expect(@instance1.after_destroy_value).to be_true
+      expect(@instance1.after_destroy_value).to be true
     end
 
     it "is transactionally safe" do
@@ -104,8 +104,8 @@ describe Sequel::Plugins::Paranoid do
 
     it "successfully cascade deletes" do
       @cascading_parent.destroy
-      expect(@cascading_parent.before_destroy_value).to be_true
-      expect(SpecFragment.present.all).to have(0).items
+      expect(@cascading_parent.before_destroy_value).to be true
+      expect(SpecFragment.present.all.count).to eq(0)
     end
   end
 
@@ -115,21 +115,21 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "undeletes an instance" do
-      expect(SpecModel.present.all).to have(1).item
+      expect(SpecModel.present.all.count).to eq(1)
       @instance1.recover
-      expect(SpecModel.present.all).to have(2).items
+      expect(SpecModel.present.all.count).to eq(2)
     end
   end
 
   describe :with_deleted do
     it "returns all instances" do
       @instance1.destroy
-      expect(SpecModel.all).to have(2).items
+      expect(SpecModel.all.count).to eq(2)
     end
 
     it "works with scopes" do
       @instance1.destroy
-      expect(SpecModel.dataset.with_deleted.all).to have(2).items
+      expect(SpecModel.dataset.with_deleted.all.count).to eq(2)
     end
 
     context "associations" do
@@ -147,7 +147,7 @@ describe Sequel::Plugins::Paranoid do
 
       it "returns only fragments of instance1" do
         dataset = @instance1.spec_fragments_dataset
-        expect(dataset.all).to have(2).items
+        expect(dataset.all.count).to eq(2)
       end
     end
   end
@@ -158,11 +158,11 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "returns false if deleted_at is not null" do
-      expect(@instance1.deleted?).to be_true
+      expect(@instance1.deleted?).to be true
     end
 
     it "returns false if deleted_at is null" do
-      expect(@instance2.deleted?).to be_false
+      expect(@instance2.deleted?).to be false
     end
   end
 
@@ -176,14 +176,14 @@ describe Sequel::Plugins::Paranoid do
 
     it "does not return the deleted instances" do
       @instance1.destroy
-      expect(SpecModelWithDefaultScope.all).to have(1).item
+      expect(SpecModelWithDefaultScope.all.count).to eq(1)
     end
 
     it "can still undelete an instance" do
       @instance1.destroy
-      expect(SpecModelWithDefaultScope.present.all).to have(1).item
+      expect(SpecModelWithDefaultScope.present.all.count).to eq(1)
       @instance1.recover
-      expect(SpecModelWithDefaultScope.present.all).to have(2).items
+      expect(SpecModelWithDefaultScope.present.all.count).to eq(2)
     end
 
     it "can update a deleted instance" do
