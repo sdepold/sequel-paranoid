@@ -4,6 +4,7 @@ describe Sequel::Plugins::Paranoid do
   before do
     SpecModel.dataset.delete
     SpecFragment.dataset.delete
+    SpecModelWithValidationHelper.dataset.delete
 
     @instance1 = SpecModel.create :name => 'foo'
     @instance2 = SpecModel.create :name => 'bar'
@@ -224,6 +225,47 @@ describe Sequel::Plugins::Paranoid do
       expect(@instance.reload.deleted_by).to eq("John Doe")
       @instance.recover
       expect(@instance.reload.deleted_by).to be_nil
+    end
+  end
+
+  describe :validates_unique do
+    before do
+      @non_validating_instance = SpecModel.create :name => 'foo'
+      @validating_instance = SpecModelWithValidationHelper.create :name => 'foo'
+      @validating_instance_too = SpecModelWithValidationHelper.new :name => 'foo'
+      @validating_instance.destroy
+    end
+
+    it "is added only if validation_helpers is used first" do
+      expect(@non_validating_instance).not_to respond_to :validates_unique
+    end
+
+    it "is added via its own module" do
+      expect(SpecModelWithValidationHelper.ancestors.count - SpecModel.ancestors.count).to eq(2)
+      expect(@validating_instance).to respond_to :validates_unique
+    end
+
+    it "does unique validation without concern to deletion if not paranoid" do
+      @validating_instance_too.extend(SpecModelWithValidationHelper::NonParanoidValidation)
+      expect {
+        @validating_instance_too.save
+      }.to raise_error(Sequel::ValidationFailed, 'name is already taken')
+    end
+
+    it "does unique validation with paranoid detection (allows creation)" do
+      @validating_instance_too.extend(SpecModelWithValidationHelper::ParanoidValidation)
+      @validating_instance_too.save
+      expect(SpecModelWithValidationHelper.deleted.count).to eq(1)
+      expect(SpecModelWithValidationHelper.present.count).to eq(1)
+      expect(SpecModelWithValidationHelper.all.count).to eq(2)
+    end
+
+    it "does unique validation with paranoid detection (disallows creation)" do
+      @validating_instance_too.extend(SpecModelWithValidationHelper::ParanoidValidation)
+      @validating_instance_too.deleted_at = @validating_instance.deleted_at
+      expect {
+        @validating_instance_too.save
+      }.to raise_error(Sequel::ValidationFailed, 'name and deleted_at is already taken')
     end
   end
 end

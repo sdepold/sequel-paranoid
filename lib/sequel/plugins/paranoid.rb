@@ -99,6 +99,38 @@ module Sequel::Plugins
         define_method("deleted?") do
           send(options[:deleted_at_field_name]) != options[:deleted_column_default]
         end
+
+        #
+        # Enhance validates_unique to support :paranoid => true for paranoid
+        # uniqueness checking.
+        #
+      end
+
+      val_mod = Module.new do
+        define_method("validates_unique") do |*columns|
+          return super(*columns) unless columns.last.kind_of?(Hash) && columns.last.delete(:paranoid)
+
+          if deleted?
+            columns = columns.map { |c|
+              case c
+              when Array, Symbol
+                [ c, options[:deleted_at_field_name] ].flatten
+              else
+                c
+              end
+            }
+
+            super(*columns) { |ds|
+              ds = ds.send(options[:deleted_scope_name])
+              block_given? ? yield(ds) : ds
+            }
+          else
+            super(*columns) { |ds|
+              ds = ds.send(options[:non_deleted_scope_name])
+              block_given? ? yield(ds) : ds
+            }
+          end
+        end
       end
 
       model.instance_eval do
@@ -112,6 +144,16 @@ module Sequel::Plugins
         # Inject the instance methods defined above.
         #
         include im_mod
+
+        #
+        # Inject the validation helper defined if ValidationHelpers has already
+        # been loaded.
+        #
+
+        if defined?(Sequel::Plugins::ValidationHelpers) &&
+            plugins.include?(Sequel::Plugins::ValidationHelpers)
+          include val_mod
+        end
 
         #
         # Inject the default scope that filters deleted entries.
