@@ -14,28 +14,24 @@ module Sequel::Plugins
         :deleted_column_default     => nil
       }.merge(options)
 
-      model.instance_eval do
-        #
-        # Inject the scopes for the deleted and the existing entries.
-        #
-
-        dataset_module do
-          # scope for deleted items
-          define_method(options[:deleted_scope_name]) do
-            send(options[:ignore_deletion_scope_name]).exclude(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => options[:deleted_column_default])
-          end
-
-          # scope for non-deleted items
-          define_method(options[:non_deleted_scope_name]) do
-            filter(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => options[:deleted_column_default])
-          end
-
-          # scope for both
-          define_method(options[:ignore_deletion_scope_name]) do
-            unfiltered
-          end
+      ds_mod = Module.new do
+        # scope for deleted items
+        define_method(options[:deleted_scope_name]) do
+          send(options[:ignore_deletion_scope_name]).exclude(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => options[:deleted_column_default])
         end
 
+        # scope for non-deleted items
+        define_method(options[:non_deleted_scope_name]) do
+          filter(Sequel.qualify(model.table_name, options[:deleted_at_field_name]) => options[:deleted_column_default])
+        end
+
+        # scope for both
+        define_method(options[:ignore_deletion_scope_name]) do
+          unfiltered
+        end
+      end
+
+      im_mod = Module.new do
         #
         # Overwrite the "_destroy_delete" method which is used by sequel to
         # delete an object. This makes sure, we run all the hook correctly and
@@ -103,6 +99,19 @@ module Sequel::Plugins
         define_method("deleted?") do
           send(options[:deleted_at_field_name]) != options[:deleted_column_default]
         end
+      end
+
+      model.instance_eval do
+        #
+        # Inject the scopes for the deleted and the existing entries.
+        #
+
+        dataset_module ds_mod
+
+        #
+        # Inject the instance methods defined above.
+        #
+        include im_mod
 
         #
         # Inject the default scope that filters deleted entries.
