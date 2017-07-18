@@ -1,10 +1,10 @@
 source 'https://rubygems.org'
 
-gem 'sequel', '~> 3.34'
+gem 'sequel', '~> 4.0'
 
 group :development, :test do
   gem "bundler", ">= 1.0.0"
-  gem "rspec", "~> 2"
+  gem "rspec"
   gem "sqlite3"
   gem 'watchr'
   gem 'rake'
