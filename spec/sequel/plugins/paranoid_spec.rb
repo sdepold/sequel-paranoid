@@ -268,4 +268,23 @@ describe Sequel::Plugins::Paranoid do
       }.to raise_error(Sequel::ValidationFailed, 'name and deleted_at is already taken')
     end
   end
+
+  describe :soft_delete_without_destroy_overwrite do
+    before do
+      @destroy_me = SpecModelWithoutDestroyOverwrite.create :name => 'foo'
+      @soft_delete_me = SpecModelWithoutDestroyOverwrite.create :name => 'foo'
+    end
+
+    it "should actually destroy a record when destroy called" do
+      @destroy_me.destroy
+      expect(@destroy_me).to_not be_exists
+    end
+
+    it "should actually destroy a record when destroy called" do
+      @soft_delete_me.soft_delete
+      expect(@soft_delete_me).to be_exists
+      expect(@soft_delete_me).to be_deleted
+    end
+
+  end
 end

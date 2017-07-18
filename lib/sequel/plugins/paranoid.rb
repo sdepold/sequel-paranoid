@@ -11,6 +11,8 @@ module Sequel::Plugins
         :non_deleted_scope_name     => :present,
         :ignore_deletion_scope_name => :with_deleted,
         :enable_default_scope       => false,
+        # @aryk: This really should be an opt in feature, not opt-out. New users will need to opt-in.
+        :soft_delete_on_destroy     => false,
         :deleted_column_default     => nil
       }.merge(options)
 
@@ -32,23 +34,32 @@ module Sequel::Plugins
       end
 
       im_mod = Module.new do
-        #
-        # Overwrite the "_destroy_delete" method which is used by sequel to
-        # delete an object. This makes sure, we run all the hook correctly and
-        # in a transaction.
-        #
-        define_method("destroy") do |*args|
-          # Save the variables threadsafe (because the locks have not been
-          # initialized by sequel yet).
-          Thread.current["_paranoid_destroy_args_#{self.object_id}"] = args
+        if options[:soft_delete_on_destroy]
+          #
+          # Overwrite the "_destroy_delete" method which is used by sequel to
+          # delete an object. This makes sure, we run all the hook correctly and
+          # in a transaction.
+          #
+          define_method("destroy") do |*args|
+            # Save the variables threadsafe (because the locks have not been
+            # initialized by sequel yet).
+            Thread.current["_paranoid_destroy_args_#{self.object_id}"] = args
 
-          super(*args)
+            super(*args)
+          end
+
+          define_method("_destroy_delete") do
+            # _destroy_delete does not take arguments.
+            destroy_options = Thread.current["_paranoid_destroy_args_#{self.object_id}"].first
+            Thread.current["_paranoid_destroy_args_#{self.object_id}"] = nil
+
+            soft_delete(destroy_options)
+          end
+
         end
 
-        define_method("_destroy_delete") do
-          # _destroy_delete does not take arguments.
-          destroy_options = Thread.current["_paranoid_destroy_args_#{self.object_id}"].first
-          Thread.current["_paranoid_destroy_args_#{self.object_id}"] = nil
+        define_method("soft_delete") do |*args|
+          destroy_options = args.first || {}
 
           # set the deletion time
           self.send("#{options[:deleted_at_field_name]}=", Time.now)
@@ -151,7 +162,7 @@ module Sequel::Plugins
         #
 
         if defined?(Sequel::Plugins::ValidationHelpers) &&
-            plugins.include?(Sequel::Plugins::ValidationHelpers)
+          plugins.include?(Sequel::Plugins::ValidationHelpers)
           include val_mod
         end
 

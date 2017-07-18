@@ -40,7 +40,7 @@ RSpec.configure do |config|
 end
 
 class SpecModel < Sequel::Model
-  plugin :paranoid
+  plugin :paranoid, soft_delete_on_destroy: true
   one_to_many :spec_fragments
 
   attr_accessor :before_destroy_value, :after_destroy_value
@@ -55,20 +55,20 @@ class SpecModel < Sequel::Model
 end
 
 class SpecFragment < Sequel::Model
-  plugin :paranoid
+  plugin :paranoid, soft_delete_on_destroy: true
   many_to_one :spec_model
 end
 
 class SpecModelWithDefaultScope < Sequel::Model
-  plugin :paranoid, :enable_default_scope => true
+  plugin :paranoid, soft_delete_on_destroy: true, :enable_default_scope => true
 end
 
 class SpecModelWithDeletedBy < Sequel::Model
-  plugin :paranoid, :enable_deleted_by => true
+  plugin :paranoid, soft_delete_on_destroy: true, :enable_deleted_by => true
 end
 
 class SpecModelWithCascadeDelete < SpecModel
-  plugin :paranoid
+  plugin :paranoid, soft_delete_on_destroy: true
   one_to_many :spec_fragment
 
   def before_destroy
@@ -80,7 +80,7 @@ end
 
 class SpecModelWithValidationHelper < Sequel::Model
   plugin :validation_helpers
-  plugin :paranoid
+  plugin :paranoid, soft_delete_on_destroy: true
 
   module NonParanoidValidation
     def validate
@@ -95,4 +95,9 @@ class SpecModelWithValidationHelper < Sequel::Model
       validates_unique :name, paranoid: true
     end
   end
+end
+
+class SpecModelWithoutDestroyOverwrite < Sequel::Model(:spec_models)
+
+  plugin :paranoid
 end
