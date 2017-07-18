@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'sequel', '~> 4.0'
+gem 'sequel', '~> 3.34'
 
 group :development, :test do
   gem "bundler", ">= 1.0.0"
