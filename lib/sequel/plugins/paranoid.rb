@@ -57,12 +57,7 @@ module Sequel::Plugins
 
       im_mod = Module.new do
         if options[:soft_delete_on_destroy]
-          #
-          # Overwrite the "_destroy_delete" method which is used by sequel to
-          # delete an object. This makes sure, we run all the hook correctly and
-          # in a transaction.
-          #
-          define_method("destroy") do |*args|
+          def destroy(*args)
             # Save the variables threadsafe (because the locks have not been
             # initialized by sequel yet).
             Thread.current["_paranoid_destroy_args_#{self.object_id}"] = args
@@ -70,7 +65,13 @@ module Sequel::Plugins
             super(*args)
           end
 
-          define_method("_destroy_delete") do
+          #
+          # Overwrite the "_destroy_delete" method which is used by sequel to
+          # delete an object. This makes sure, we run all the hook correctly and
+          # in a transaction.
+          #
+
+          define_method(:_destroy_delete) do
             # _destroy_delete does not take arguments.
             destroy_options = Thread.current["_paranoid_destroy_args_#{self.object_id}"].first
             Thread.current["_paranoid_destroy_args_#{self.object_id}"] = nil
@@ -90,7 +91,7 @@ module Sequel::Plugins
         # when default scope is enabled
         #
 
-        define_method("_update_without_checking") do |columns|
+        def _update_without_checking(columns)
           # figure out correct pk conditions (see base#this)
           conditions = this.send(:joined_dataset?) ? qualified_pk_hash : pk_hash
 
@@ -100,13 +101,13 @@ module Sequel::Plugins
           # run the original update on the with_deleted dataset
           update_with_deleted_dataset.update(columns)
 
-        end if(options[:enable_default_scope])
+        end if options[:enable_default_scope]
 
         #
         # Method for undeleting an instance.
         #
 
-        define_method("recover") do
+        define_method(:recover) do
           self.send("#{options[:deleted_at_field_name]}=".to_sym, options[:deleted_column_default])
 
           if options[:enable_deleted_by] && self.respond_to?(options[:deleted_by_field_name].to_sym)
@@ -120,7 +121,7 @@ module Sequel::Plugins
         # Check if an instance is deleted.
         #
 
-        define_method("deleted?") do
+        define_method(:deleted?) do
           send(options[:deleted_at_field_name]) != options[:deleted_column_default]
         end
 
@@ -131,7 +132,7 @@ module Sequel::Plugins
       end
 
       val_mod = Module.new do
-        define_method("validates_unique") do |*columns|
+        define_method(:validates_unique) do |*columns|
           return super(*columns) unless columns.last.kind_of?(Hash) && columns.last.delete(:paranoid)
 
           if deleted?
