@@ -153,6 +153,48 @@ describe Sequel::Plugins::Paranoid do
     end
   end
 
+  describe :soft_delete do
+    context "instance without destroy override" do
+      before do
+        @destroy_me = SpecModelWithoutDestroyOverwrite.create :name => 'foo'
+        @soft_delete_me = SpecModelWithoutDestroyOverwrite.create :name => 'foo'
+      end
+
+      it "should actually destroy a record when destroy called" do
+        @destroy_me.destroy
+        expect(@destroy_me).to_not be_exists
+      end
+
+      it "should actually destroy a record when destroy called" do
+        @soft_delete_me.soft_delete
+        expect(@soft_delete_me).to be_exists
+        expect(@soft_delete_me).to be_deleted
+      end
+    end
+
+    context "associations" do
+      before do
+        @fragment1 = SpecFragment.create(:name => 'fragment1')
+        @fragment2 = SpecFragment.create(:name => 'fragment2')
+        @fragment3 = SpecFragment.create(:name => 'fragment3')
+
+        @instance1.add_spec_fragment @fragment1
+        @instance1.add_spec_fragment @fragment2
+        @instance2.add_spec_fragment @fragment3
+
+        @instance1.spec_fragments_dataset.soft_delete
+      end
+
+      it "should soft delete records" do
+        fragments = @instance1.refresh.spec_fragments
+        expect(fragments.size).to eq(2)
+        expect(fragments).to all(be_deleted)
+        expect(fragments.map(&:deleted_at)).to all(be_a(Time))
+      end
+    end
+
+  end
+
   describe :deleted? do
     before do
       @instance1.destroy
@@ -267,24 +309,5 @@ describe Sequel::Plugins::Paranoid do
         @validating_instance_too.save
       }.to raise_error(Sequel::ValidationFailed, 'name and deleted_at is already taken')
     end
-  end
-
-  describe :soft_delete_without_destroy_overwrite do
-    before do
-      @destroy_me = SpecModelWithoutDestroyOverwrite.create :name => 'foo'
-      @soft_delete_me = SpecModelWithoutDestroyOverwrite.create :name => 'foo'
-    end
-
-    it "should actually destroy a record when destroy called" do
-      @destroy_me.destroy
-      expect(@destroy_me).to_not be_exists
-    end
-
-    it "should actually destroy a record when destroy called" do
-      @soft_delete_me.soft_delete
-      expect(@soft_delete_me).to be_exists
-      expect(@soft_delete_me).to be_deleted
-    end
-
   end
 end

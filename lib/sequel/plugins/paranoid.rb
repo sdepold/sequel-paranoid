@@ -6,6 +6,7 @@ module Sequel::Plugins
       options = {
         :deleted_at_field_name      => :deleted_at,
         :deleted_by_field_name      => :deleted_by,
+        :delete_method_name         => :soft_delete,
         :enable_deleted_by          => false,
         :deleted_scope_name         => :deleted,
         :non_deleted_scope_name     => :present,
@@ -15,6 +16,21 @@ module Sequel::Plugins
         :soft_delete_on_destroy     => false,
         :deleted_column_default     => nil
       }.merge(options)
+
+      delete_attributes = proc do |*args|
+        destroy_options = args.first || {}
+
+        attrs = {}
+        # set the deletion time
+        attrs[options[:deleted_at_field_name]] = Time.now
+
+        # set the deletion author
+        if options[:enable_deleted_by] && destroy_options && destroy_options[:deleted_by]
+          attrs[options[:deleted_by_field_name]] = destroy_options[:deleted_by]
+        end
+
+        attrs
+      end
 
       ds_mod = Module.new do
         # scope for deleted items
@@ -31,6 +47,12 @@ module Sequel::Plugins
         define_method(options[:ignore_deletion_scope_name]) do
           unfiltered
         end
+
+        # soft delete the records without callbacks.
+        define_method(options[:delete_method_name]) do |*args|
+          update(delete_attributes.call(*args))
+        end
+
       end
 
       im_mod = Module.new do
@@ -53,22 +75,13 @@ module Sequel::Plugins
             destroy_options = Thread.current["_paranoid_destroy_args_#{self.object_id}"].first
             Thread.current["_paranoid_destroy_args_#{self.object_id}"] = nil
 
-            soft_delete(destroy_options)
+            send(options[:delete_method_name], destroy_options)
           end
 
         end
 
-        define_method("soft_delete") do |*args|
-          destroy_options = args.first || {}
-
-          # set the deletion time
-          self.send("#{options[:deleted_at_field_name]}=", Time.now)
-
-          # set the deletion author
-          if options[:enable_deleted_by] && destroy_options && destroy_options[:deleted_by]
-            self.send("#{options[:deleted_by_field_name]}=", destroy_options[:deleted_by])
-          end
-
+        define_method(options[:delete_method_name]) do |*args|
+          self.set(delete_attributes.call(*args))
           self.save
         end
 
