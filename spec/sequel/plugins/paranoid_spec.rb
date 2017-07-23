@@ -13,7 +13,7 @@ describe Sequel::Plugins::Paranoid do
   context "without deletions" do
     describe "Model.all" do
       it "returns all entries" do
-        expect(SpecModel.present.all.count).to eq(2)
+        expect(SpecModel.not_deleted.all.count).to eq(2)
       end
     end
 
@@ -30,7 +30,7 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "doesn't return deleted entries" do
-      expect(SpecModel.present.all.count).to eq(1)
+      expect(SpecModel.not_deleted.all.count).to eq(1)
     end
 
     it "returns deleted entries if the default scope has been extended" do
@@ -51,9 +51,9 @@ describe Sequel::Plugins::Paranoid do
       end
     end
 
-    describe :present do
+    describe :not_deleted do
       it "returns the not deleted entries only" do
-        instances = SpecModel.present.all
+        instances = SpecModel.not_deleted.all
 
         expect(instances.count).to eq(1)
         expect(instances.first.deleted_at).to be_nil
@@ -106,7 +106,7 @@ describe Sequel::Plugins::Paranoid do
     it "successfully cascade deletes" do
       @cascading_parent.destroy
       expect(@cascading_parent.before_destroy_value).to be true
-      expect(SpecFragment.present.all.count).to eq(0)
+      expect(SpecFragment.not_deleted.all.count).to eq(0)
     end
   end
 
@@ -116,9 +116,9 @@ describe Sequel::Plugins::Paranoid do
     end
 
     it "undeletes an instance" do
-      expect(SpecModel.present.all.count).to eq(1)
+      expect(SpecModel.not_deleted.all.count).to eq(1)
       @instance1.recover
-      expect(SpecModel.present.all.count).to eq(2)
+      expect(SpecModel.not_deleted.all.count).to eq(2)
     end
   end
 
@@ -224,9 +224,9 @@ describe Sequel::Plugins::Paranoid do
 
     it "can still undelete an instance" do
       @instance1.destroy
-      expect(SpecModelWithDefaultScope.present.all.count).to eq(1)
+      expect(SpecModelWithDefaultScope.not_deleted.all.count).to eq(1)
       @instance1.recover
-      expect(SpecModelWithDefaultScope.present.all.count).to eq(2)
+      expect(SpecModelWithDefaultScope.not_deleted.all.count).to eq(2)
     end
 
     it "can update a deleted instance" do
@@ -298,7 +298,7 @@ describe Sequel::Plugins::Paranoid do
       @validating_instance_too.extend(SpecModelWithValidationHelper::ParanoidValidation)
       @validating_instance_too.save
       expect(SpecModelWithValidationHelper.deleted.count).to eq(1)
-      expect(SpecModelWithValidationHelper.present.count).to eq(1)
+      expect(SpecModelWithValidationHelper.not_deleted.count).to eq(1)
       expect(SpecModelWithValidationHelper.all.count).to eq(2)
     end
 

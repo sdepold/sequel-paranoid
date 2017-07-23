@@ -9,7 +9,7 @@ module Sequel::Plugins
         :delete_method_name         => :soft_delete,
         :enable_deleted_by          => false,
         :deleted_scope_name         => :deleted,
-        :non_deleted_scope_name     => :present,
+        :non_deleted_scope_name     => :not_deleted,
         :ignore_deletion_scope_name => :with_deleted,
         :enable_default_scope       => false,
         # @aryk: This really should be an opt in feature, not opt-out. New users will need to opt-in.
