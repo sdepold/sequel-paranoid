@@ -79,8 +79,7 @@ class SpecModelWithCascadeDelete < SpecModel
 end
 
 class SpecModelWithValidationHelper < Sequel::Model
-  plugin :validation_helpers
-  plugin :paranoid, soft_delete_on_destroy: true
+  plugin :paranoid, soft_delete_on_destroy: true, include_validation_helpers: true
 
   module NonParanoidValidation
     def validate

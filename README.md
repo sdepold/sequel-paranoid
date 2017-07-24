@@ -19,27 +19,42 @@ This will assume that you have a column `deleted_at`, which gets filled with the
 ```rb
 instance = ParanoidModel.create(:something)
 
-instance.deleted?   # => false
-instance.deleted_at # => nil
+instance.deleted?    # => false
+instance.deleted_at  # => nil
 
-instance.destroy
+instance.soft_delete # sets the deleted_at column and soft deletes the record. `destroy` still works normally.
+record.paranoid_models_dataset.soft_delete # also allows soft deletion in bulk on the dataset.
 
-instance.deleted?   # => true
-instance.deleted_at # => current timestamp
+instance.deleted?    # => true
+instance.deleted_at  # => current timestamp
 ```
 
-### Reading the data
+This will assume that you have a column `deleted_at`, which gets filled with the current timestamp once the model gets destroyed:
+
+```rb
+instance = ParanoidModel.create(:something)
+
+instance.deleted?    # => false
+instance.deleted_at  # => nil
+
+instance.soft_delete # sets the deleted_at column and soft deletes the record. `destroy` still works normally.
+
+instance.deleted?    # => true
+instance.deleted_at  # => current timestamp
+```
+
+### Reading The Data
 
 By default the plugin will not change the way scopes have been working. So if you want to take the deletion state of an entry into account
 you can use the following dataset filters:
 
 ```rb
-ParanoidModel.present.all      # => Will return all the non-deleted entries from the db.
+ParanoidModel.not_deleted.all  # => Will return all the non-deleted entries from the db.
 ParanoidModel.deleted.all      # => Will return all the deleted entries from the db.
 ParanoidModel.with_deleted.all # => Will ignore the deletion state (and is the default).
 ```
 
-### Renaming the deletion timestamp columns
+### Renaming The Deletion Timestamp Columns
 
 If you don't want to use the default column name `deleted_at`, you can easily rename that column:
 
@@ -54,20 +69,23 @@ instance.destroy
 instance.destroyed_at # => current timestamp
 ```
 
-### Enabling the non-deleted default scope
+### Side Effects Mode (Enable Default Scope & Override `destroy`)
 
-In order to exclude deleted entries by default from any query, you can enable an option in the plugin. One major reason for
-don't enabling it by default is the fact, that associations are kinda broken, when you want to load also deleted associated
-instances:
+If you want a more "magical" implementation, you will need to opt-in. 
+
+
+In order to exclude deleted entries by default from any query, you can enable an option in the plugin. We highly advise against these modes because it will not interoperate well with associations when you want to load deleted associated instances.
+
+If you want to override `destroy`, you can opt-in for this with the `soft_delete_on_destroy` option.
 
 ```rb
 class ParanoidModel < Sequel::Model
-  plugin :paranoid, :enable_default_scope => true
+  plugin :paranoid, :enable_default_scope => true, :soft_delete_on_destroy => true
   one_to_many :child_models
 end
 
 class AnotherModel < Sequel::Model
-  plugin :paranoid
+  plugin :paranoid, :soft_delete_on_destroy => true
   many_to_one :paranoid_model
 end
 
@@ -101,7 +119,23 @@ parent1.child_models_dataset.unfiltered.all # => [child1, child2, child3] (broke
 Note that the last command is broken, as `child3` is not associated with parent1. The reason for that is `unfiltered`,
 which will not only remove the `deleted_at` check but also the assocation condition of the query.
 
-### Using unique constraints with soft-deletion
+### Validates Helpers
+
+You can supply `include_validation_helpers: true` to enable uniqueness on non-deleted records.
+
+```rb
+class ParanoidModel < Sequel::Model
+  plugin :paranoid, include_validation_helpers: true
+  
+   def validate
+     super
+     validates_unique :name, paranoid: true
+   end
+    
+end
+```
+
+### Using Unique Constraints With Soft-deletion
 
 You can use the `:deleted_column_default` option in order to specify a value
 that is not `NULL`, which will allow you to include the column in a unique

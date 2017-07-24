@@ -2,8 +2,9 @@ require 'sequel'
 
 module Sequel::Plugins
   module Paranoid
+
     def self.configure(model, options = {})
-      options = {
+      model.sequel_paranoid_options = options = {
         :deleted_at_field_name      => :deleted_at,
         :deleted_by_field_name      => :deleted_by,
         :delete_method_name         => :soft_delete,
@@ -12,10 +13,10 @@ module Sequel::Plugins
         :non_deleted_scope_name     => :not_deleted,
         :ignore_deletion_scope_name => :with_deleted,
         :enable_default_scope       => false,
-        # @aryk: This really should be an opt in feature, not opt-out. New users will need to opt-in.
         :soft_delete_on_destroy     => false,
-        :deleted_column_default     => nil
-      }.merge(options)
+        :deleted_column_default     => nil,
+        :include_validation_helpers => false,
+      }.update(options)
 
       delete_attributes = proc do |*args|
         destroy_options = args.first || {}
@@ -56,41 +57,97 @@ module Sequel::Plugins
       end
 
       im_mod = Module.new do
-        if options[:soft_delete_on_destroy]
-          def destroy(*args)
-            # Save the variables threadsafe (because the locks have not been
-            # initialized by sequel yet).
-            Thread.current["_paranoid_destroy_args_#{self.object_id}"] = args
-
-            super(*args)
-          end
-
-          #
-          # Overwrite the "_destroy_delete" method which is used by sequel to
-          # delete an object. This makes sure, we run all the hook correctly and
-          # in a transaction.
-          #
-
-          define_method(:_destroy_delete) do
-            # _destroy_delete does not take arguments.
-            destroy_options = Thread.current["_paranoid_destroy_args_#{self.object_id}"].first
-            Thread.current["_paranoid_destroy_args_#{self.object_id}"] = nil
-
-            send(options[:delete_method_name], destroy_options)
-          end
-
-        end
 
         define_method(options[:delete_method_name]) do |*args|
           self.set(delete_attributes.call(*args))
           self.save
         end
 
+      end
+
+      model.instance_eval do
+        dataset_module ds_mod
+        include im_mod
+
+        plugin SoftDeleteOnDestroy if options[:soft_delete_on_destroy]
+        plugin EnableDefaultScope if options[:enable_default_scope]
+        plugin Validations if options[:include_validation_helpers]
+      end
+    end
+
+    module ClassMethods
+      attr_accessor :sequel_paranoid_options
+
+      ::Sequel::Plugins.inherited_instance_variables(self, :@sequel_paranoid_options=>:hash_dup)
+    end
+
+    module InstanceMethods
+
+      #
+      # Method for undeleting an instance.
+      #
+      def recover
+        opts = self.class.sequel_paranoid_options
+        send("#{opts[:deleted_at_field_name]}=".to_sym, opts[:deleted_column_default])
+
+        if opts[:enable_deleted_by] && self.respond_to?(opts[:deleted_by_field_name].to_sym)
+          send("#{opts[:deleted_by_field_name]}=", nil)
+        end
+
+        save
+      end
+
+      #
+      # Check if an instance is deleted.
+      #
+
+      def deleted?
+        opts = self.class.sequel_paranoid_options
+        send(opts[:deleted_at_field_name]) != opts[:deleted_column_default]
+      end
+
+    end
+
+    module SoftDeleteOnDestroy
+      module InstanceMethods
+        def destroy(*args)
+          # Save the variables threadsafe (because the locks have not been
+          # initialized by sequel yet).
+          Thread.current["_paranoid_destroy_args_#{self.object_id}"] = args
+
+          super(*args)
+        end
+
+        #
+        # Overwrite the "_destroy_delete" method which is used by sequel to
+        # delete an object. This makes sure, we run all the hook correctly and
+        # in a transaction.
+        #
+
+        def _destroy_delete
+          # _destroy_delete does not take arguments.
+          destroy_options = Thread.current["_paranoid_destroy_args_#{self.object_id}"].first
+          Thread.current["_paranoid_destroy_args_#{self.object_id}"] = nil
+
+          send(self.class.sequel_paranoid_options[:delete_method_name], destroy_options)
+        end
+      end
+    end
+
+    module EnableDefaultScope
+
+      def self.configure(model)
+        model.class_eval do
+          set_dataset(send(sequel_paranoid_options[:non_deleted_scope_name]))
+        end
+      end
+
+      module InstanceMethods
+
         #
         # Sequel patch to allow updates to deleted instances
         # when default scope is enabled
         #
-
         def _update_without_checking(columns)
           # figure out correct pk conditions (see base#this)
           conditions = this.send(:joined_dataset?) ? qualified_pk_hash : pk_hash
@@ -101,93 +158,49 @@ module Sequel::Plugins
           # run the original update on the with_deleted dataset
           update_with_deleted_dataset.update(columns)
 
-        end if options[:enable_default_scope]
-
-        #
-        # Method for undeleting an instance.
-        #
-
-        define_method(:recover) do
-          self.send("#{options[:deleted_at_field_name]}=".to_sym, options[:deleted_column_default])
-
-          if options[:enable_deleted_by] && self.respond_to?(options[:deleted_by_field_name].to_sym)
-            self.send("#{options[:deleted_by_field_name]}=", nil)
-          end
-
-          self.save
         end
 
-        #
-        # Check if an instance is deleted.
-        #
+      end
+    end
 
-        define_method(:deleted?) do
-          send(options[:deleted_at_field_name]) != options[:deleted_column_default]
-        end
+    module Validations
 
+      def self.apply(base)
+        base.plugin :validation_helpers
+      end
+
+      module InstanceMethods
         #
         # Enhance validates_unique to support :paranoid => true for paranoid
         # uniqueness checking.
         #
-      end
-
-      val_mod = Module.new do
-        define_method(:validates_unique) do |*columns|
+        def validates_unique(*columns)
           return super(*columns) unless columns.last.kind_of?(Hash) && columns.last.delete(:paranoid)
 
+          opts = self.class.sequel_paranoid_options
           if deleted?
             columns = columns.map { |c|
               case c
               when Array, Symbol
-                [ c, options[:deleted_at_field_name] ].flatten
+                [ c, opts[:deleted_at_field_name] ].flatten
               else
                 c
               end
             }
 
             super(*columns) { |ds|
-              ds = ds.send(options[:deleted_scope_name])
+              ds = ds.send(opts[:deleted_scope_name])
               block_given? ? yield(ds) : ds
             }
           else
             super(*columns) { |ds|
-              ds = ds.send(options[:non_deleted_scope_name])
+              ds = ds.send(opts[:non_deleted_scope_name])
               block_given? ? yield(ds) : ds
             }
           end
         end
       end
 
-      model.instance_eval do
-        #
-        # Inject the scopes for the deleted and the existing entries.
-        #
-
-        dataset_module ds_mod
-
-        #
-        # Inject the instance methods defined above.
-        #
-        include im_mod
-
-        #
-        # Inject the validation helper defined if ValidationHelpers has already
-        # been loaded.
-        #
-
-        if defined?(Sequel::Plugins::ValidationHelpers) &&
-          plugins.include?(Sequel::Plugins::ValidationHelpers)
-          include val_mod
-        end
-
-        #
-        # Inject the default scope that filters deleted entries.
-        #
-
-        if options[:enable_default_scope]
-          set_dataset(self.send(options[:non_deleted_scope_name]))
-        end
-      end
     end
   end
 end
