@@ -1,5 +1,10 @@
 ## Changelog
 
+### NEXT
+- Add paranoid uniqueness validation; restructure code to allow for proper module injection.
+- Upgrade to rspec 2.99
+- Remove Gemfile.lock (gems should not have lockfiles).
+
 ### 0.6.2
 - Fix handling of default scopes
 

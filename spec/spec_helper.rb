@@ -31,10 +31,16 @@ RSpec.configure do |config|
     String   :deleted_by
     String :name
   end
+
+  DB.create_table(:spec_model_with_validation_helpers) do
+    primary_key :id, :auto_increment => true
+    DateTime :deleted_at
+    String   :name
+  end
 end
 
 class SpecModel < Sequel::Model
-  plugin :paranoid
+  plugin :paranoid, soft_delete_on_destroy: true
   one_to_many :spec_fragments
 
   attr_accessor :before_destroy_value, :after_destroy_value
@@ -49,20 +55,20 @@ class SpecModel < Sequel::Model
 end
 
 class SpecFragment < Sequel::Model
-  plugin :paranoid
+  plugin :paranoid, soft_delete_on_destroy: true
   many_to_one :spec_model
 end
 
 class SpecModelWithDefaultScope < Sequel::Model
-  plugin :paranoid, :enable_default_scope => true
+  plugin :paranoid, soft_delete_on_destroy: true, :enable_default_scope => true
 end
 
 class SpecModelWithDeletedBy < Sequel::Model
-  plugin :paranoid, :enable_deleted_by => true
+  plugin :paranoid, soft_delete_on_destroy: true, :enable_deleted_by => true
 end
 
 class SpecModelWithCascadeDelete < SpecModel
-  plugin :paranoid
+  plugin :paranoid, soft_delete_on_destroy: true
   one_to_many :spec_fragment
 
   def before_destroy
@@ -70,4 +76,28 @@ class SpecModelWithCascadeDelete < SpecModel
 
     super
   end
+end
+
+class SpecModelWithValidationHelper < Sequel::Model
+  plugin :validation_helpers
+  plugin :paranoid, soft_delete_on_destroy: true
+
+  module NonParanoidValidation
+    def validate
+      super
+      validates_unique :name
+    end
+  end
+
+  module ParanoidValidation
+    def validate
+      super
+      validates_unique :name, paranoid: true
+    end
+  end
+end
+
+class SpecModelWithoutDestroyOverwrite < Sequel::Model(:spec_models)
+
+  plugin :paranoid
 end
