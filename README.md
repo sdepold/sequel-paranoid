@@ -149,3 +149,12 @@ class ParanoidModel < Sequel::Model
   plugin :paranoid, :deleted_column_default: Time.at(0)
 end
 ```
+
+## Contributors ##
+ * [Aryk](https://github.com/Aryk)
+ * [halostatue](https://github.com/halostatue)
+ * [iblue](https://github.com/iblue)
+ * [drosile](https://github.com/drosile)
+ * [lipanski](https://github.com/lipanski)
+ * [GarPit](https://github.com/GarPit)
+ * [reidmix](https://github.com/reidmix)
