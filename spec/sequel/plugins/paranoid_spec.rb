@@ -207,6 +207,11 @@ describe Sequel::Plugins::Paranoid do
     it "returns false if deleted_at is null" do
       expect(@instance2.deleted?).to be false
     end
+
+    it "returns false for new unsaved models" do
+      expect(SpecModel.new.deleted?).to be false
+      expect(SpecModelWithColumnDefault.new.deleted?).to be false
+    end
   end
 
   describe :default_scope do

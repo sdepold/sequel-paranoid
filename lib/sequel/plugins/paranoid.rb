@@ -103,7 +103,7 @@ module Sequel::Plugins
 
       def deleted?
         opts = self.class.sequel_paranoid_options
-        send(opts[:deleted_at_field_name]) != opts[:deleted_column_default]
+        send(opts[:deleted_at_field_name]) != opts[:deleted_column_default] && !new?
       end
 
     end
@@ -178,7 +178,7 @@ module Sequel::Plugins
           return super(*columns) unless columns.last.kind_of?(Hash) && columns.last.delete(:paranoid)
 
           opts = self.class.sequel_paranoid_options
-          if deleted?
+          if deleted? || (new? && send(opts[:deleted_at_field_name]))
             columns = columns.map { |c|
               case c
               when Array, Symbol
