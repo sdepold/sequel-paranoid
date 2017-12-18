@@ -67,6 +67,10 @@ class SpecModelWithDeletedBy < Sequel::Model
   plugin :paranoid, soft_delete_on_destroy: true, :enable_deleted_by => true
 end
 
+class SpecModelWithColumnDefault < SpecModel
+  plugin :paranoid, soft_delete_on_destroy: true, :deleted_column_default => Time.at(0)
+end
+
 class SpecModelWithCascadeDelete < SpecModel
   plugin :paranoid, soft_delete_on_destroy: true
   one_to_many :spec_fragment
