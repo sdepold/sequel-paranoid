@@ -29,20 +29,6 @@ instance.deleted?    # => true
 instance.deleted_at  # => current timestamp
 ```
 
-This will assume that you have a column `deleted_at`, which gets filled with the current timestamp once the model gets destroyed:
-
-```rb
-instance = ParanoidModel.create(:something)
-
-instance.deleted?    # => false
-instance.deleted_at  # => nil
-
-instance.soft_delete # sets the deleted_at column and soft deletes the record. `destroy` still works normally.
-
-instance.deleted?    # => true
-instance.deleted_at  # => current timestamp
-```
-
 ### Reading The Data
 
 By default the plugin will not change the way scopes have been working. So if you want to take the deletion state of an entry into account
@@ -65,7 +51,7 @@ end
 
 instance = ParanoidModel.create(:something => 'foo')
 
-instance.destroy
+instance.soft_delete
 instance.destroyed_at # => current timestamp
 ```
 
@@ -84,7 +70,7 @@ class ParanoidModel < Sequel::Model
   one_to_many :child_models
 end
 
-class AnotherModel < Sequel::Model
+class ChildModel < Sequel::Model
   plugin :paranoid, :soft_delete_on_destroy => true
   many_to_one :paranoid_model
 end
@@ -121,15 +107,15 @@ which will not only remove the `deleted_at` check but also the assocation condit
 
 ### Validates Helpers
 
-You can supply `include_validation_helpers: true` to enable uniqueness on non-deleted records.
+You can supply `:include_validation_helpers => true` to enable uniqueness on non-deleted records.
 
 ```rb
 class ParanoidModel < Sequel::Model
-  plugin :paranoid, include_validation_helpers: true
+  plugin :paranoid, :include_validation_helpers => true
   
    def validate
      super
-     validates_unique :name, paranoid: true
+     validates_unique :name, :paranoid => true
    end
     
 end
@@ -146,7 +132,7 @@ database.
 
 ```rb
 class ParanoidModel < Sequel::Model
-  plugin :paranoid, :deleted_column_default: Time.at(0)
+  plugin :paranoid, :deleted_column_default => Time.at(0)
 end
 ```
 
